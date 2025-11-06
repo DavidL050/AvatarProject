@@ -1,0 +1,5 @@
+/Users/UnityProjects/AvatarProject_backup/.utmp/RelWithDebInfo/3w49211i/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/UnityProjects/AvatarProject_backup/.utmp/RelWithDebInfo/3w49211i/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/UnityProjects/AvatarProject_backup/.utmp/RelWithDebInfo/3w49211i/arm64-v8a/GameActivity/CMakeFiles/game.dir
+/Users/UnityProjects/AvatarProject_backup/.utmp/RelWithDebInfo/3w49211i/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+/Users/UnityProjects/AvatarProject_backup/.utmp/RelWithDebInfo/3w49211i/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir

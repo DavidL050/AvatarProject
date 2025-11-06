@@ -1,0 +1,27 @@
+using System.ComponentModel;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Linq;
+using System;
+using System.Reflection;
+using UnityEditor;
+using System.Text;
+
+namespace Sunbox.Avatars {
+
+    public class AvatarCustomization : MonoBehaviour {
+        // ... [resto del código sin cambios hasta SafeDestroyGameObject_Internal]
+
+        private void SafeDestroyGameObject_Internal(GameObject gameObject) 
+        {
+#if UNITY_EDITOR
+            if (PrefabUtility.IsPartOfAnyPrefab(this.gameObject)) {
+                PrefabUtility.UnpackPrefabInstance(this.gameObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            }
+#endif
+            DestroyImmediate(gameObject);
+        }
+
+        // ... [resto del código sin cambios]
+    }
+}
