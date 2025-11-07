@@ -1,36 +1,67 @@
 // AvatarData.cs
-using System; // Necesario para [Serializable]
+using System;
 
-// Definimos un tipo de dato específico para el género. Es más limpio y seguro que usar un string o un int.
 public enum Gender { Male, Female }
 
-// [Serializable] es la clave para que Unity pueda convertir esta clase a JSON para guardarla.
 [Serializable]
 public class AvatarData
 {
-    public Gender selectedGender; // Para saber qué modelo cargar en la siguiente escena
-
-    // --- VARIABLES QUE FALTABAN ---
-    public int skinColorIndex; // ¡AÑADIDA! Para guardar el color de piel
-    public string hairId;      // ¡AÑADIDA! Para guardar qué peinado se eligió
-    public string shirtId;     // ¡AÑADIDA! Para guardar la camisa
-
-    // --- Blend Shapes ---
-    // Añade una variable public float por cada slider que tengas.
+    // Datos básicos
+    public Gender selectedGender;
+    public int skinColorIndex;
+    public string hairId;
+    
+    // Blend Shapes
     public float bodyFat;
     public float bodyMuscle;
-    public float breastSize; // Este valor solo se usará si el género es Female
-
+    public float breastSize;
+    
+    // --- ROPA COMPLETA (NUEVO) ---
+    // Hat (Gorra/Sombrero)
+    public string clothingItemHatName;
+    public int clothingItemHatVariation;
+    
+    // Top (Camisa/Camiseta/Parte Superior)
+    public string clothingItemTopName;
+    public int clothingItemTopVariation;
+    
+    // Bottom (Pantalones/Falda)
+    public string clothingItemBottomName;
+    public int clothingItemBottomVariation;
+    
+    // Shoes (Zapatos)
+    public string clothingItemShoesName;
+    public int clothingItemShoesVariation;
+    
+    // Glasses (Gafas)
+    public string clothingItemGlassesName;
+    public int clothingItemGlassesVariation;
+    
     // --- CONSTRUCTOR POR DEFECTO ---
-    // Se usa para crear un avatar la primera vez que juega un usuario.
     public AvatarData()
     {
         selectedGender = Gender.Female;
         skinColorIndex = 0;
-        hairId = "DefaultHair"; // Puedes cambiar estos valores por defecto
-        shirtId = "DefaultShirt";
+        hairId = "DefaultHair";
+        
         bodyFat = 0.5f;
         bodyMuscle = 0.3f;
         breastSize = 0.5f;
+        
+        // Valores por defecto para ropa (vacíos = sin ropa)
+        clothingItemHatName = "";
+        clothingItemHatVariation = 0;
+        
+        clothingItemTopName = "";
+        clothingItemTopVariation = 0;
+        
+        clothingItemBottomName = "";
+        clothingItemBottomVariation = 0;
+        
+        clothingItemShoesName = "";
+        clothingItemShoesVariation = 0;
+        
+        clothingItemGlassesName = "";
+        clothingItemGlassesVariation = 0;
     }
 }
