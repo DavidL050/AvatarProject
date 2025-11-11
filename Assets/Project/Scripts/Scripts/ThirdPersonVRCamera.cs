@@ -1,203 +1,52 @@
 using UnityEngine;
 
-/// <summary>
-/// Sistema de cámara de tercera persona para VR
-/// La cámara sigue al avatar mientras te mueves con los joysticks VR
-/// </summary>
+// Versión Corregida con Snap Inicial
 public class ThirdPersonVRCamera : MonoBehaviour
 {
     [Header("Referencias")]
-    [Tooltip("El avatar que seguirá la cámara (Female_Avatar o Male_Avatar)")]
-    public Transform avatarTarget;
-    
-    [Tooltip("XR Origin - para obtener la posición VR")]
-    public Transform xrOrigin;
+    [Tooltip("Arrastra aquí el objeto del avatar que la cámara debe seguir.")]
+    public Transform target;
 
-    [Header("Configuración de Cámara")]
-    [Tooltip("Distancia de la cámara detrás del avatar")]
-    public float distanceBehind = 3f;
-    
-    [Tooltip("Altura de la cámara sobre el avatar")]
-    public float heightAbove = 2f;
-    
-    [Tooltip("Suavidad del seguimiento (menor = más suave)")]
+    [Header("Configuración de Seguimiento")]
+    [Tooltip("Qué tan rápido la cámara se pone al día con el movimiento del avatar. Valores más altos son más rápidos.")]
     [Range(1f, 20f)]
-    public float smoothSpeed = 10f;
+    public float followSmoothness = 8f;
 
-    [Header("Rotación")]
-    [Tooltip("¿Permitir rotar la cámara con el joystick derecho?")]
-    public bool allowCameraRotation = true;
-    
-    [Tooltip("Sensibilidad de rotación")]
+    [Header("Configuración de Rotación Orbital")]
+    [Tooltip("Qué tan rápido orbita la cámara alrededor del avatar con el joystick.")]
     public float rotationSpeed = 100f;
 
-    [Header("Colisión")]
-    [Tooltip("¿Evitar que la cámara atraviese paredes?")]
-    public bool avoidWalls = true;
-    
-    [Tooltip("Capas que bloquean la cámara")]
-    public LayerMask collisionMask = -1;
-
-    // Variables privadas
-    private float currentRotationY = 0f;
-    private Vector3 currentVelocity;
-
+    // --- ¡NUEVO MÉTODO AÑADIDO! ---
     void Start()
     {
-        // Auto-detectar avatar si no está asignado
-        if (avatarTarget == null)
+        // Esto soluciona el problema del inicio.
+        // Mueve instantáneamente el rig de la cámara a la posición del avatar
+        // en el primer frame, para que empiecen en el mismo sitio.
+        if (target != null)
         {
-            GameObject avatar = GameObject.FindGameObjectWithTag("Player");
-            if (avatar != null)
-            {
-                avatarTarget = avatar.transform;
-                Debug.Log($"✓ Avatar auto-detectado: {avatarTarget.name}");
-            }
-            else
-            {
-                Debug.LogError("⚠ No se encontró el avatar. Asigna 'avatarTarget' manualmente.");
-            }
-        }
-
-        // Auto-detectar XR Origin si no está asignado
-        if (xrOrigin == null)
-        {
-            GameObject xr = GameObject.Find("XR Origin (VR)");
-            if (xr != null)
-            {
-                xrOrigin = xr.transform;
-                Debug.Log($"✓ XR Origin auto-detectado");
-            }
-        }
-
-        // Establecer rotación inicial
-        if (avatarTarget != null)
-        {
-            currentRotationY = avatarTarget.eulerAngles.y;
+            transform.position = target.position;
         }
     }
 
     void LateUpdate()
     {
-        if (avatarTarget == null) return;
-
-        // Manejar rotación de cámara con joystick derecho (opcional)
-        HandleCameraRotation();
-
-        // Calcular posición deseada de la cámara
-        Vector3 desiredPosition = CalculateDesiredPosition();
-
-        // Verificar colisiones
-        if (avoidWalls)
+        if (target == null)
         {
-            desiredPosition = CheckForWallCollision(desiredPosition);
+            Debug.LogError("¡ERROR! El 'Target' del script de la cámara no está asignado.");
+            return;
         }
 
-        // Mover cámara suavemente
-        transform.position = Vector3.SmoothDamp(
-            transform.position, 
-            desiredPosition, 
-            ref currentVelocity, 
-            1f / smoothSpeed
-        );
+        // --- 1. SEGUIMIENTO SUAVE DE LA POSICIÓN ---
+        // (Esta parte sigue igual y funcionará perfectamente después del Start)
+        transform.position = Vector3.Lerp(transform.position, target.position, Time.deltaTime * followSmoothness);
 
-        // Hacer que la cámara mire al avatar
-        transform.LookAt(avatarTarget.position + Vector3.up * heightAbove * 0.5f);
-    }
+        // --- 2. ROTACIÓN CON EL JOYSTICK DERECHO ---
+        // (Esta parte no cambia)
+        float horizontalInput = Input.GetAxis("Horizontal_RightStick");
 
-    /// <summary>
-    /// Calcula la posición deseada de la cámara detrás del avatar
-    /// </summary>
-    Vector3 CalculateDesiredPosition()
-    {
-        // Dirección hacia atrás basada en la rotación actual
-        Vector3 directionBack = Quaternion.Euler(0, currentRotationY, 0) * Vector3.back;
-        
-        // Posición objetivo
-        Vector3 targetPosition = avatarTarget.position;
-        targetPosition += directionBack * distanceBehind;
-        targetPosition += Vector3.up * heightAbove;
-
-        return targetPosition;
-    }
-
-    /// <summary>
-    /// Verifica si hay una pared entre la cámara y el avatar
-    /// </summary>
-    Vector3 CheckForWallCollision(Vector3 desiredPosition)
-    {
-        Vector3 avatarPos = avatarTarget.position + Vector3.up * heightAbove * 0.5f;
-        Vector3 direction = desiredPosition - avatarPos;
-        float distance = direction.magnitude;
-
-        RaycastHit hit;
-        if (Physics.Raycast(avatarPos, direction.normalized, out hit, distance, collisionMask))
+        if (Mathf.Abs(horizontalInput) > 0.1f)
         {
-            // Hay una pared, acercar la cámara
-            return hit.point - direction.normalized * 0.3f; // 0.3f = buffer
+            transform.Rotate(0, horizontalInput * rotationSpeed * Time.deltaTime, 0);
         }
-
-        return desiredPosition;
-    }
-
-    /// <summary>
-    /// Permite rotar la cámara con el joystick derecho del control VR
-    /// </summary>
-    void HandleCameraRotation()
-    {
-        if (!allowCameraRotation) return;
-
-        // Input para VR (joystick derecho)
-        Vector2 rightStickInput = Vector2.zero;
-
-        // Obtener input del joystick derecho VR
-        // Esto depende de tu sistema VR (XR Input o Input System)
-        #if UNITY_INPUT_SYSTEM
-        // Si usas Input System:
-        // rightStickInput = InputSystem.actions.FindAction("Camera Rotate").ReadValue<Vector2>();
-        #else
-        // Si usas Input Manager clásico:
-        rightStickInput.x = Input.GetAxis("Horizontal_RightStick"); // Configura esto en Input Manager
-        #endif
-
-        // También permitir rotación con teclado para testing
-        if (Input.GetKey(KeyCode.Q)) rightStickInput.x = -1f;
-        if (Input.GetKey(KeyCode.E)) rightStickInput.x = 1f;
-
-        // Aplicar rotación
-        if (rightStickInput.sqrMagnitude > 0.01f)
-        {
-            currentRotationY += rightStickInput.x * rotationSpeed * Time.deltaTime;
-        }
-        else
-        {
-            // Si no hay input, seguir la rotación del avatar
-            currentRotationY = Mathf.LerpAngle(
-                currentRotationY, 
-                avatarTarget.eulerAngles.y, 
-                Time.deltaTime * 2f
-            );
-        }
-    }
-
-    /// <summary>
-    /// Dibuja gizmos en el editor para visualizar la configuración
-    /// </summary>
-    void OnDrawGizmosSelected()
-    {
-        if (avatarTarget == null) return;
-
-        // Posición del avatar
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(avatarTarget.position, 0.3f);
-
-        // Posición deseada de la cámara
-        Vector3 desiredPos = CalculateDesiredPosition();
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(desiredPos, 0.3f);
-
-        // Línea entre avatar y cámara
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawLine(avatarTarget.position, desiredPos);
     }
 }
