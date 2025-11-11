@@ -13,7 +13,7 @@ namespace Sunbox.Avatars
 {
     public class UUIAvatarEditor : MonoBehaviour
     {
-        // --- Constantes y Variables Públicas (sin cambios) ---
+       
         const string CONTENT_STRING = " (Content)";
         const string CONTENT_STRING_HIDE = " (Content Hide)";
 
@@ -41,7 +41,7 @@ namespace Sunbox.Avatars
         [Space(20)]
         public RectTransform ContentTransform;
 
-        // --- Variables Privadas (sin cambios) ---
+        
         private Vector3 _cameraPosition;
         private Vector3 _cameraRotation;
         private Vector3 _zoomedPosition = new Vector3(-0.331f, 1.566f, 0.804f);
@@ -57,9 +57,9 @@ namespace Sunbox.Avatars
         private UClothingItem _hiddenGlasses;
         private List<SliderWrapper> _sliders = new List<SliderWrapper>();
 
-        // --- Start y Update (sin cambios de lógica) ---
+       
         void Start() {
-            // ... (Tu código de Start se mantiene igual)
+            
             _cameraPosition = Camera.transform.position;
             _cameraRotation = Camera.transform.eulerAngles;
 
@@ -136,18 +136,12 @@ namespace Sunbox.Avatars
         }
 
         void Update() {
-            // En lugar de mover la cámara, movemos el XR Origin para evitar conflictos con el tracking.
-            // Si el script está en la cámara, esto está bien. Si está en otro objeto,
-            // sería mejor mover el XR Origin. Por ahora, mantenemos tu lógica original.
+          
             Camera.transform.position = Vector3.Lerp(Camera.transform.position, _isZoomed ? _zoomedPosition : _cameraPosition, 2f * Time.deltaTime);
             Camera.transform.rotation = Quaternion.Lerp(Camera.transform.rotation, _isZoomed ? Quaternion.Euler(_zoomedRotation) : Quaternion.Euler(_cameraRotation), 2 * Time.deltaTime);
         }
 
-        // --- Resto de Métodos (con correcciones importantes) ---
 
-        // ... (Tu código de UpdateSliderList_Internal, ShowSliderList_Internal, 
-        //      ClearSectionContent_Internal, ShowClothingList_Internal, AddSlider_Internal,
-        //      GetObjectName_Internal se mantienen igual)
         private void UpdateSliderList_Internal() {
             if (_sliders == null) {
                 return;
@@ -330,7 +324,7 @@ namespace Sunbox.Avatars
             }
         }
 
-        // --- Clases Internas (con correcciones) ---
+        
 
         public class ClothingDropdownWrapper
         {
@@ -342,7 +336,6 @@ namespace Sunbox.Avatars
                     _title = value;
                     if (_instance != null)
                     {
-                        // CORRECCIÓN ROBUSTA AQUÍ:
                         var titleText = _instance.GetComponentInChildren<TextMeshProUGUI>();
                         if(titleText != null) titleText.text = value;
                     }
@@ -351,7 +344,7 @@ namespace Sunbox.Avatars
 
             private string _title;
             private Slider _slider;
-            // CORRECCIÓN AQUÍ: Cambiamos Dropdown a TMP_Dropdown
+           
             private TMP_Dropdown _dropdown;
 
             private GameObject _clothingDropdownTemplate;
@@ -389,7 +382,7 @@ namespace Sunbox.Avatars
                 UpdateSliderText_Internal(_selectedClothingItem != null ? _selectedClothingItem.Variations[_avatar.GetClothingItemVariationIndex(_slotType)].name : "");
 
                 _dropdown.ClearOptions();
-                // CORRECCIÓN AQUÍ: Creamos una lista de TMP_Dropdown.OptionData
+               
                 List<TMP_Dropdown.OptionData> options = _avatar.AvatarReferences.AvailableClothingItems
                     .Where(item => item.SlotType == _slotType)
                     .Select(item => new TMP_Dropdown.OptionData(item.Name))
@@ -413,7 +406,7 @@ namespace Sunbox.Avatars
                 return this;
             }
             
-            // ... (El resto de ClothingDropdownWrapper se mantiene casi igual, solo las correcciones ya hechas)
+ 
             public void SetOnClothingItemSelected(Action<ClothingItem> onClothingItemSelected) {
                 _onClothingItemSelected = onClothingItemSelected;
                 if (_dropdown != null) {
@@ -475,7 +468,7 @@ namespace Sunbox.Avatars
             }
             
             private void UpdateSliderText_Internal(string text) {
-                // CORRECCIÓN ROBUSTA AQUÍ
+               
                 var sliderText = _slider.GetComponentInChildren<TextMeshProUGUI>();
                 if(sliderText != null) sliderText.text = text;
             }
@@ -564,8 +557,6 @@ namespace Sunbox.Avatars
         }
     }
     
-    // CORRECCIÓN AQUÍ: FirstIndexMatch no existe en LINQ estándar.
-    // Esta es una extensión que el desarrollador original debió crear. La recreamos.
     public static class LinqExtensions
     {
         public static int FirstIndexMatch<T>(this IEnumerable<T> source, Predicate<T> match)

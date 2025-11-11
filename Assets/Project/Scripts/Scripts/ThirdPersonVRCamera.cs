@@ -16,12 +16,10 @@ public class ThirdPersonVRCamera : MonoBehaviour
     [Tooltip("Qué tan rápido orbita la cámara alrededor del avatar con el joystick.")]
     public float rotationSpeed = 100f;
 
-    // --- ¡NUEVO MÉTODO AÑADIDO! ---
+    
     void Start()
     {
-        // Esto soluciona el problema del inicio.
-        // Mueve instantáneamente el rig de la cámara a la posición del avatar
-        // en el primer frame, para que empiecen en el mismo sitio.
+   
         if (target != null)
         {
             transform.position = target.position;
@@ -36,12 +34,9 @@ public class ThirdPersonVRCamera : MonoBehaviour
             return;
         }
 
-        // --- 1. SEGUIMIENTO SUAVE DE LA POSICIÓN ---
-        // (Esta parte sigue igual y funcionará perfectamente después del Start)
         transform.position = Vector3.Lerp(transform.position, target.position, Time.deltaTime * followSmoothness);
 
-        // --- 2. ROTACIÓN CON EL JOYSTICK DERECHO ---
-        // (Esta parte no cambia)
+    
         float horizontalInput = Input.GetAxis("Horizontal_RightStick");
 
         if (Mathf.Abs(horizontalInput) > 0.1f)

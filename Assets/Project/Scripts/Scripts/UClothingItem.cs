@@ -3,9 +3,7 @@ using UnityEngine;
 
 namespace Sunbox.Avatars {
 
-    /// <summary>
-    /// Instantiated clothing item behaviour
-    /// </summary>
+  
     public class UClothingItem : MonoBehaviour {
         public ClothingItem ClothingItem;
         public int VariationIndex;

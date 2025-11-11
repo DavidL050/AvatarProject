@@ -1,4 +1,4 @@
-// AvatarCustomization.cs - VERSIÓN COMPLETA CON PERSISTENCIA DE ROPA
+
 using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
@@ -103,17 +103,17 @@ namespace Sunbox.Avatars {
                 return; 
             } 
             
-            // ✅ OBTENER los datos actuales en lugar de crear nuevos
+           
             AvatarData dataToSave = GameManager.Instance.CurrentAvatarData;
             
-            // Si no hay datos previos, crear nuevos
+       
             if (dataToSave == null)
             {
                 dataToSave = new AvatarData();
                 Debug.LogWarning("No había datos previos, creando nuevos AvatarData");
             }
             
-            // Actualizar todos los campos
+            
             dataToSave.selectedGender = (Gender)this.CurrentGender; 
             dataToSave.bodyFat = this.BodyFat; 
             dataToSave.bodyMuscle = this.BodyMuscle; 
@@ -121,18 +121,18 @@ namespace Sunbox.Avatars {
             dataToSave.skinColorIndex = this.SkinMaterialIndex; 
             dataToSave.hairId = GetHairIdFromIndex(this.HairStyleIndex); 
             
-            // Guardar ropa
+       
             SaveClothingToData(dataToSave);
             
-            // Actualizar en GameManager
+         
             GameManager.Instance.SetCurrentAvatarData(dataToSave); 
             
-            // Guardar a disco
+         
             GameManager.Instance.SavePlayerData(); 
             
             Debug.Log("========== AVATAR GUARDADO COMPLETO ==========");
             
-            // Cambiar de escena
+           
             UnityEngine.SceneManagement.SceneManager.LoadScene("Proyecto_General"); 
         }
 
@@ -165,9 +165,7 @@ namespace Sunbox.Avatars {
         #endregion
 
         #region Persistencia de Ropa
-        /// <summary>
-        /// Busca un ClothingItem por nombre en los items disponibles
-        /// </summary>
+     
         private ClothingItem FindClothingItemByName(string itemName)
         {
             if (string.IsNullOrEmpty(itemName))
@@ -181,7 +179,6 @@ namespace Sunbox.Avatars {
                 return null;
             }
 
-            // Búsqueda exacta primero
             foreach (var item in AvatarReferences.AvailableClothingItems)
             {
                 if (item != null && item.Name == itemName)
@@ -191,7 +188,7 @@ namespace Sunbox.Avatars {
                 }
             }
 
-            // Si no se encuentra, intentar búsqueda case-insensitive
+           
             foreach (var item in AvatarReferences.AvailableClothingItems)
             {
                 if (item != null && item.Name.Equals(itemName, StringComparison.OrdinalIgnoreCase))
@@ -201,7 +198,6 @@ namespace Sunbox.Avatars {
                 }
             }
 
-            // Log de todos los items disponibles para debugging
             Debug.LogError($"✗ ClothingItem '{itemName}' NO encontrado. Items disponibles:");
             for (int i = 0; i < AvatarReferences.AvailableClothingItems.Length; i++)
             {
@@ -215,9 +211,7 @@ namespace Sunbox.Avatars {
             return null;
         }
 
-        /// <summary>
-        /// Aplica la ropa guardada desde AvatarData
-        /// </summary>
+        
         private void ApplyClothingFromData(AvatarData data)
         {
             if (data == null)
@@ -228,7 +222,7 @@ namespace Sunbox.Avatars {
 
             Debug.Log($"========== APLICANDO ROPA DESDE DATOS GUARDADOS ==========");
 
-            // Aplicar Hat
+            
             if (!string.IsNullOrEmpty(data.clothingItemHatName))
             {
                 ClothingItem hat = FindClothingItemByName(data.clothingItemHatName);
@@ -250,7 +244,7 @@ namespace Sunbox.Avatars {
                 Debug.Log("○ Hat: ninguno");
             }
 
-            // Aplicar Top
+            
             if (!string.IsNullOrEmpty(data.clothingItemTopName))
             {
                 ClothingItem top = FindClothingItemByName(data.clothingItemTopName);
@@ -294,7 +288,7 @@ namespace Sunbox.Avatars {
                 Debug.Log("○ Bottom: ninguno");
             }
 
-            // Aplicar Shoes
+          
             if (!string.IsNullOrEmpty(data.clothingItemShoesName))
             {
                 ClothingItem shoes = FindClothingItemByName(data.clothingItemShoesName);
@@ -316,7 +310,7 @@ namespace Sunbox.Avatars {
                 Debug.Log("○ Shoes: ninguno");
             }
 
-            // Aplicar Glasses
+            
             if (!string.IsNullOrEmpty(data.clothingItemGlassesName))
             {
                 ClothingItem glasses = FindClothingItemByName(data.clothingItemGlassesName);
@@ -341,9 +335,7 @@ namespace Sunbox.Avatars {
             Debug.Log($"========== FIN APLICACIÓN DE ROPA ==========");
         }
 
-        /// <summary>
-        /// Guarda la ropa actual en AvatarData
-        /// </summary>
+        
         private void SaveClothingToData(AvatarData data)
         {
             if (data == null)

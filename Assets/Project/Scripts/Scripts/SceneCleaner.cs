@@ -1,19 +1,26 @@
 using UnityEngine;
-using StarterAssets; 
+
 
 public class SceneCleaner : MonoBehaviour
 {
     void Awake()
     {
-        // Ahora el script sabrá qué es un ThirdPersonController
-        ThirdPersonController[] players = FindObjectsOfType<ThirdPersonController>();
-        
-        Debug.Log($"[SceneCleaner] Se encontraron {players.Length} jugadores persistentes.");
 
-        foreach (var player in players)
+        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+
+        if (players.Length > 1)
         {
-            Debug.LogWarning($"[SceneCleaner] Destruyendo jugador fantasma: {player.gameObject.name}");
-            Destroy(player.gameObject);
+            Debug.Log($"[SceneCleaner] Se encontraron {players.Length} jugadores. Procediendo a limpiar el duplicado.");
+
+            for (int i = 1; i < players.Length; i++)
+            {
+                 Debug.LogWarning($"[SceneCleaner] Destruyendo jugador fantasma: {players[i].gameObject.name}");
+                 Destroy(players[i].gameObject);
+            }
+        }
+        else
+        {
+            Debug.Log($"[SceneCleaner] Se encontró {players.Length} jugador. No se requiere limpieza.");
         }
     }
 }

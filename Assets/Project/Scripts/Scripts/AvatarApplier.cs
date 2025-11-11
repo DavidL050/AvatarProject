@@ -10,7 +10,7 @@ public class AvatarApplier : MonoBehaviour
     
     void Awake()
     {
-        // Guardar la posición original del avatar ANTES de cualquier modificación
+     
         originalPosition = transform.position;
         originalRotation = transform.rotation;
         Debug.Log($"Posición original del avatar guardada: {originalPosition}");
@@ -41,7 +41,7 @@ public class AvatarApplier : MonoBehaviour
             customizer.ApplyData(dataToApply);
             Debug.Log("¡Apariencia aplicada correctamente desde el GameManager!");
             
-            // FORZAR que el avatar vuelva a su posición original
+            
             Invoke(nameof(RestorePosition), 0.1f);
         }
         else

@@ -3,12 +3,12 @@ using System.Collections;
 
 public class XRBootSnap : MonoBehaviour {
     public Transform xrOrigin;   // XR Origin (XR Rig)
-    public Transform hmd;        // Main Camera (HMD)
-    public Transform defaultTarget; // tu target inicial (vista al avatar)
-    public CharacterController cc;  // opcional
+    public Transform hmd;        
+    public Transform defaultTarget;
+    public CharacterController cc; 
 
     IEnumerator Start() {
-        yield return null; // espera 1 frame a que el HMD reporte pose
+        yield return null; 
         TeleportTo(defaultTarget);
     }
 

@@ -22,7 +22,7 @@ public class AvatarMovement : MonoBehaviour
         isGrounded = controller.isGrounded;
         if (isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f; // Mantiene al avatar pegado al suelo
+            velocity.y = -2f; 
         }
 
         // Movimiento horizontal

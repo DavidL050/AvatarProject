@@ -9,8 +9,7 @@ public class MainMenu : MonoBehaviour
     public TMP_InputField profileNameInputField;
     public Button loginButton;
 
-    // La función Awake() ha sido eliminada porque el AvatarCarrier ya no existe
-    // y no se necesita ninguna limpieza al iniciar.
+
 
     void Start()
     {
@@ -31,7 +30,7 @@ public class MainMenu : MonoBehaviour
         Debug.Log("Botón 'Jugar' presionado.");
         Debug.Log("Intentando iniciar sesión con el perfil: '" + profileName + "'");
 
-        // Guarda el perfil y carga los datos del avatar en el GameManager
+        // Guarda el perfil y carga los datos del avatar
         GameManager.Instance.LoginUser(profileName);
 
         // Comprueba si el usuario ya tiene un archivo de guardado

@@ -1,4 +1,4 @@
-// GameManager.cs - VERSIÓN CORREGIDA FINAL
+
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -47,17 +47,13 @@ public class GameManager : MonoBehaviour
         Debug.Log($"✓ Datos guardados para perfil: {ActiveUserProfile}");
     }
 
-    /// <summary>
-    /// Actualiza los datos del avatar que están en memoria en el GameManager.
-    /// </summary>
+  
     public void SetCurrentAvatarData(AvatarData data)
     {
         CurrentAvatarData = data;
     }
 
-    /// <summary>
-    /// Obtiene los datos actuales del avatar
-    /// </summary>
+
     public AvatarData GetCurrentAvatarData()
     {
         return CurrentAvatarData;

@@ -4,10 +4,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-/// <summary>
-/// Previsualiza un clip en loop sobre dos avatares (male y female) en modo Editor.
-/// No interfiere con el Animator en modo Play.
-/// </summary>
+
 [ExecuteAlways]
 public class EditorIdlePreview : MonoBehaviour
 {

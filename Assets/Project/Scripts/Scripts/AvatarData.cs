@@ -1,4 +1,4 @@
-// AvatarData.cs
+
 using System;
 
 public enum Gender { Male, Female }
@@ -37,7 +37,7 @@ public class AvatarData
     public string clothingItemGlassesName;
     public int clothingItemGlassesVariation;
     
-    // --- CONSTRUCTOR POR DEFECTO ---
+    
     public AvatarData()
     {
         selectedGender = Gender.Female;
@@ -48,7 +48,7 @@ public class AvatarData
         bodyMuscle = 0.3f;
         breastSize = 0.5f;
         
-        // Valores por defecto para ropa (vacíos = sin ropa)
+        
         clothingItemHatName = "";
         clothingItemHatVariation = 0;
         

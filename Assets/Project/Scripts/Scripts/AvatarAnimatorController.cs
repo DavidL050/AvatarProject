@@ -5,7 +5,7 @@ using TMPro;
 public class AvatarAnimationController : MonoBehaviour
 {
     [Header("Configuración del Avatar")]
-    // ¡CAMBIO IMPORTANTE! Arrastra aquí el objeto PADRE que contiene tus avatares
+    
     public Transform avatarParent; 
 
     [Header("UI del Panel de Animación")]
@@ -53,13 +53,12 @@ public class AvatarAnimationController : MonoBehaviour
   
     public void PlayAnimation(string stateName)
     {
-        // Busca un componente Animator en los hijos del objeto padre,
-        // pero SOLO en los que estén activos en la jerarquía.
+       
         Animator currentAnimator = avatarParent.GetComponentInChildren<Animator>();
 
         if (currentAnimator != null)
         {
-            // Reproduce la animación en el avatar que encontró activo
+          
             currentAnimator.Play(stateName);
         }
         else
