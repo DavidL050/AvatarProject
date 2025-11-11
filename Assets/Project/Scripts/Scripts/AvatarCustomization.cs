@@ -74,31 +74,27 @@ namespace Sunbox.Avatars {
         #endregion
 
         #region Integración con Sistema de Juego
-        public void ApplyData(AvatarData data) 
-        { 
-            if (data == null) 
-            { 
-                Debug.LogError("Se intentó aplicar datos nulos."); 
-                return; 
-            } 
-            
-            this.CurrentGender = (AvatarGender)data.selectedGender; 
-            this.BodyFat = data.bodyFat; 
-            this.BodyMuscle = data.bodyMuscle; 
-            this.BreastSize = data.breastSize; 
-            this.SkinMaterialIndex = data.skinColorIndex; 
-            this.HairStyleIndex = FindHairIndexFromId(data.hairId); 
-            
-            SetGender(CurrentGender, true); 
-            UpdateCustomization(); 
-            
-            // Aplicar ropa guardada
-            ApplyClothingFromData(data);
-            UpdateClothing();
-            
-            Debug.Log("Datos de Avatar aplicados con ropa.");
-        }
+     public void ApplyData(AvatarData data)
+{
+    if (data == null)
+    {
+        Debug.LogError("Se intentó aplicar datos nulos.");
+        return;
+    }
+    this.CurrentGender = (AvatarGender)data.selectedGender;
+    this.BodyFat = data.bodyFat;
+    this.BodyMuscle = data.bodyMuscle;
+    this.BreastSize = data.breastSize;
+    this.SkinMaterialIndex = data.skinColorIndex;
+    this.HairStyleIndex = FindHairIndexFromId(data.hairId);
 
+
+    ApplyClothingFromData(data);
+    SetGender(CurrentGender, true);
+    UpdateClothing();
+
+    Debug.Log("Avatar reconstruido correctamente con su ropa y forma corporal.");
+}
         public void SaveDataAndContinue() 
         { 
             if (GameManager.Instance == null) 
@@ -107,7 +103,17 @@ namespace Sunbox.Avatars {
                 return; 
             } 
             
-            AvatarData dataToSave = new AvatarData(); 
+            // ✅ OBTENER los datos actuales en lugar de crear nuevos
+            AvatarData dataToSave = GameManager.Instance.CurrentAvatarData;
+            
+            // Si no hay datos previos, crear nuevos
+            if (dataToSave == null)
+            {
+                dataToSave = new AvatarData();
+                Debug.LogWarning("No había datos previos, creando nuevos AvatarData");
+            }
+            
+            // Actualizar todos los campos
             dataToSave.selectedGender = (Gender)this.CurrentGender; 
             dataToSave.bodyFat = this.BodyFat; 
             dataToSave.bodyMuscle = this.BodyMuscle; 
@@ -115,11 +121,18 @@ namespace Sunbox.Avatars {
             dataToSave.skinColorIndex = this.SkinMaterialIndex; 
             dataToSave.hairId = GetHairIdFromIndex(this.HairStyleIndex); 
             
-            // Guardar ropa actual
+            // Guardar ropa
             SaveClothingToData(dataToSave);
             
+            // Actualizar en GameManager
             GameManager.Instance.SetCurrentAvatarData(dataToSave); 
+            
+            // Guardar a disco
             GameManager.Instance.SavePlayerData(); 
+            
+            Debug.Log("========== AVATAR GUARDADO COMPLETO ==========");
+            
+            // Cambiar de escena
             UnityEngine.SceneManagement.SceneManager.LoadScene("Proyecto_General"); 
         }
 
@@ -344,27 +357,27 @@ namespace Sunbox.Avatars {
             // Guardar Hat
             data.clothingItemHatName = ClothingItemHat?.Name ?? "";
             data.clothingItemHatVariation = ClothingItemHat != null ? ClothingItemHatVariationIndex : 0;
-            Debug.Log($"Hat: '{data.clothingItemHatName}' (Var: {data.clothingItemHatVariation})");
+            Debug.Log($"Hat: '{data.clothingItemHatName}' (Var: {data.clothingItemHatVariation}) - Objeto: {(ClothingItemHat != null ? "✓" : "✗")}");
 
             // Guardar Top
             data.clothingItemTopName = ClothingItemTop?.Name ?? "";
             data.clothingItemTopVariation = ClothingItemTop != null ? ClothingItemTopVariationIndex : 0;
-            Debug.Log($"Top: '{data.clothingItemTopName}' (Var: {data.clothingItemTopVariation})");
+            Debug.Log($"Top: '{data.clothingItemTopName}' (Var: {data.clothingItemTopVariation}) - Objeto: {(ClothingItemTop != null ? "✓" : "✗")}");
 
             // Guardar Bottom
             data.clothingItemBottomName = ClothingItemBottom?.Name ?? "";
             data.clothingItemBottomVariation = ClothingItemBottom != null ? ClothingItemBottomVariationIndex : 0;
-            Debug.Log($"Bottom: '{data.clothingItemBottomName}' (Var: {data.clothingItemBottomVariation})");
+            Debug.Log($"Bottom: '{data.clothingItemBottomName}' (Var: {data.clothingItemBottomVariation}) - Objeto: {(ClothingItemBottom != null ? "✓" : "✗")}");
 
             // Guardar Shoes
             data.clothingItemShoesName = ClothingItemShoes?.Name ?? "";
             data.clothingItemShoesVariation = ClothingItemShoes != null ? ClothingItemShoesVariationIndex : 0;
-            Debug.Log($"Shoes: '{data.clothingItemShoesName}' (Var: {data.clothingItemShoesVariation})");
+            Debug.Log($"Shoes: '{data.clothingItemShoesName}' (Var: {data.clothingItemShoesVariation}) - Objeto: {(ClothingItemShoes != null ? "✓" : "✗")}");
 
             // Guardar Glasses
             data.clothingItemGlassesName = ClothingItemGlasses?.Name ?? "";
             data.clothingItemGlassesVariation = ClothingItemGlasses != null ? ClothingItemGlassesVariationIndex : 0;
-            Debug.Log($"Glasses: '{data.clothingItemGlassesName}' (Var: {data.clothingItemGlassesVariation})");
+            Debug.Log($"Glasses: '{data.clothingItemGlassesName}' (Var: {data.clothingItemGlassesVariation}) - Objeto: {(ClothingItemGlasses != null ? "✓" : "✗")}");
 
             Debug.Log($"========== FIN GUARDADO DE ROPA ==========");
         }

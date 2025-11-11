@@ -1,4 +1,4 @@
-// GameManager.cs - VERSIÓN CORREGIDA
+// GameManager.cs - VERSIÓN CORREGIDA FINAL
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -6,7 +6,6 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
     public AvatarData CurrentAvatarData { get; private set; }
     public string ActiveUserProfile { get; private set; }
-
     public RuntimeAnimatorController maleAnimatorOverride;
     public RuntimeAnimatorController femaleAnimatorOverride;
     public Avatar maleAvatarAsset;
@@ -32,7 +31,6 @@ public class GameManager : MonoBehaviour
             Debug.LogError("El nombre de perfil no puede estar vacío.");
             return;
         }
-
         ActiveUserProfile = profileID;
         CurrentAvatarData = SaveSystem.LoadAvatar(ActiveUserProfile);
         Debug.Log("Sesión iniciada para el perfil: " + ActiveUserProfile);
@@ -46,16 +44,22 @@ public class GameManager : MonoBehaviour
             return;
         }
         SaveSystem.SaveAvatar(CurrentAvatarData, ActiveUserProfile);
+        Debug.Log($"✓ Datos guardados para perfil: {ActiveUserProfile}");
     }
 
-    // ==========================================================
-    // ======> ¡FUNCIÓN AÑADIDA QUE CORRIGE EL SEGUNDO ERROR! <=======
-    // ==========================================================
     /// <summary>
     /// Actualiza los datos del avatar que están en memoria en el GameManager.
     /// </summary>
     public void SetCurrentAvatarData(AvatarData data)
     {
         CurrentAvatarData = data;
+    }
+
+    /// <summary>
+    /// Obtiene los datos actuales del avatar
+    /// </summary>
+    public AvatarData GetCurrentAvatarData()
+    {
+        return CurrentAvatarData;
     }
 }

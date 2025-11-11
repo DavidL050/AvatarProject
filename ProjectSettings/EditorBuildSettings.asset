@@ -18,7 +18,7 @@ EditorBuildSettings:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: f0cb42cf455074a4f9388e262fc6e71d, type: 2}
     com.unity.addressableassets: {fileID: 11400000, guid: 81200dba2e25b484c9b1b40fb8d8ac9e, type: 2}
     com.unity.input.settings: {fileID: 11400000, guid: 9e7be553448fa2546aea5752021cbcf7, type: 2}
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 4419d82f33d36e848b3ed5af4c8da37e, type: 3}
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: c348712bda248c246b8c49b3db54643f, type: 3}
     com.unity.localization.settings: {fileID: 11400000, guid: c5b21ffa9fb1d47a69c24f94e648b38a, type: 2}
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 2a5bee63a635846dc9b37cac4645121e, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 10d577eb7faac42e5b95f837c910887d, type: 2}
