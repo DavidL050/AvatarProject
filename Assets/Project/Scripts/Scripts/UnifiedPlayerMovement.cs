@@ -25,17 +25,17 @@ public class UnifiedPlayerMovement : MonoBehaviour
     public float groundCheckMargin = 0.1f;
 
     [Header("Suavizado de Animación")]
-    [Tooltip("Velocidad de transición entre animaciones (menor = más suave)")]
-    [Range(0.1f, 1f)]
-    public float animationSmoothTime = 0.15f;
+    [Tooltip("Tiempo de transición entre animaciones (mayor = más suave)")]
+    [Range(0.05f, 0.5f)]
+    public float animationDampTime = 0.15f;
     
-    [Tooltip("Multiplicador de aceleración al iniciar movimiento")]
+    [Tooltip("Velocidad de aceleración del movimiento")]
     [Range(1f, 10f)]
-    public float accelerationRate = 5f;
+    public float accelerationRate = 4f;
     
-    [Tooltip("Multiplicador de desaceleración al detener movimiento")]
+    [Tooltip("Velocidad de desaceleración del movimiento")]
     [Range(1f, 10f)]
-    public float decelerationRate = 7f;
+    public float decelerationRate = 6f;
 
     [Header("Referencias VR")]
     public Transform xrOrigin;
@@ -65,9 +65,8 @@ public class UnifiedPlayerMovement : MonoBehaviour
     private bool jumpRequestedThisFrame = false;
     private bool isJumping = false;
     
-    // Suavizado de animación
-    private float currentAnimSpeed = 0f;
-    private float animationVelocity = 0f; // Para SmoothDamp
+    // Suavizado de movimiento (no de animación)
+    private float currentMovementSpeed = 0f;
 
     // VR
     private UnityEngine.XR.InputDevice leftController;
@@ -86,7 +85,7 @@ public class UnifiedPlayerMovement : MonoBehaviour
             moveAction.canceled += OnMoveCanceled;
         }
 
-        // Configurar acción de Sprint (solo guardar referencia, lectura directa en Update)
+        // Configurar acción de Sprint
         sprintAction = playerInput.actions["Sprint"];
 
         // Configurar acción de Salto
@@ -151,16 +150,17 @@ public class UnifiedPlayerMovement : MonoBehaviour
 
         GetVRInput();
         
-        // CORRECCIÓN SPRINT: Lectura directa del estado del botón
+        // Lectura del estado de Sprint
         if (sprintAction != null)
         {
             sprintInput = sprintAction.IsPressed();
         }
         
-        // Detección de suelo
+        // Detección de suelo mejorada
         wasGroundedLastFrame = isGrounded;
         isGrounded = characterController.isGrounded || 
-                     (characterController.collisionFlags & CollisionFlags.Below) != 0;
+                     Physics.Raycast(transform.position, Vector3.down, 
+                                   (characterController.height / 2f) + groundCheckMargin);
 
         // Detectar aterrizaje
         if (isGrounded && !wasGroundedLastFrame && isJumping)
@@ -248,11 +248,6 @@ public class UnifiedPlayerMovement : MonoBehaviour
 
             Debug.Log($"🦘 Salto ejecutado - Frame: {Time.frameCount}, Tiempo: {Time.time:F2}");
         }
-        else if (jumpRequestedThisFrame)
-        {
-            Debug.Log($"❌ Salto rechazado - Grounded: {isGrounded}, Jumping: {isJumping}, " +
-                     $"Cooldown: {Time.time - lastJumpTime:F2}s/{jumpCooldown}s, VelY: {velocity.y:F2}");
-        }
     }
 
     private void MoveCharacter()
@@ -266,10 +261,8 @@ public class UnifiedPlayerMovement : MonoBehaviour
         forward.Normalize();
         right.Normalize();
 
-        // CORRECCIÓN DIAGONAL: Clamp magnitude del input antes de usarlo
+        // Clamp del input para evitar velocidades diagonales exageradas
         Vector2 clampedInput = Vector2.ClampMagnitude(moveInput, 1f);
-        
-        // Guardar magnitud para movimiento analógico (gamepad)
         float inputMagnitude = clampedInput.magnitude;
         
         // Calcular dirección de movimiento
@@ -279,14 +272,21 @@ public class UnifiedPlayerMovement : MonoBehaviour
             moveDirection = (forward * clampedInput.y + right * clampedInput.x).normalized;
         }
 
-        // Determinar velocidad objetivo
-        float targetSpeed = sprintInput ? sprintSpeed : walkSpeed;
-        
-        // Multiplicar por magnitud del input para soporte analógico
-        float currentSpeed = inputMagnitude * targetSpeed;
+        // Determinar velocidad objetivo según input
+        float targetSpeed = 0f;
+        if (inputMagnitude > 0.1f)
+        {
+            targetSpeed = sprintInput ? sprintSpeed : walkSpeed;
+            targetSpeed *= inputMagnitude; // Soporte para input analógico
+        }
 
-        // Aplicar movimiento
-        Vector3 finalMovement = (moveDirection * currentSpeed + velocity) * Time.deltaTime;
+        // Suavizar la velocidad de movimiento con Lerp
+        float smoothRate = (targetSpeed > currentMovementSpeed) ? accelerationRate : decelerationRate;
+        currentMovementSpeed = Mathf.Lerp(currentMovementSpeed, targetSpeed, Time.deltaTime * smoothRate);
+
+        // Aplicar movimiento con velocidad suavizada
+        Vector3 horizontalMovement = moveDirection * currentMovementSpeed;
+        Vector3 finalMovement = (horizontalMovement + velocity) * Time.deltaTime;
         characterController.Move(finalMovement);
 
         // Rotación suave hacia la dirección de movimiento
@@ -305,27 +305,20 @@ public class UnifiedPlayerMovement : MonoBehaviour
     {
         if (animator == null) return;
 
-        // Calcular velocidad objetivo para el Blend Tree
+        // Calcular velocidad objetivo para el Animator
         float targetAnimSpeed = 0f;
+        float inputMagnitude = Vector2.ClampMagnitude(moveInput, 1f).magnitude;
         
-        if (moveInput.magnitude > 0.1f)
+        if (inputMagnitude > 0.1f)
         {
-            // Si hay input, usar la velocidad correspondiente
             targetAnimSpeed = sprintInput ? sprintSpeed : walkSpeed;
+            targetAnimSpeed *= inputMagnitude;
         }
-        
-        // SUAVIZADO: Interpolación suave hacia la velocidad objetivo
-        currentAnimSpeed = Mathf.SmoothDamp(
-            currentAnimSpeed, 
-            targetAnimSpeed, 
-            ref animationVelocity, 
-            animationSmoothTime
-        );
 
-        // Enviar velocidad suavizada al Animator
+        // CLAVE: Usar SetFloat con dampTime para transiciones suaves
         if (!string.IsNullOrEmpty(speedParameterName))
         {
-            animator.SetFloat(speedParameterName, currentAnimSpeed);
+            animator.SetFloat(speedParameterName, targetAnimSpeed, animationDampTime, Time.deltaTime);
         }
 
         // Actualizar estado de suelo
@@ -348,7 +341,6 @@ public class UnifiedPlayerMovement : MonoBehaviour
 
     public void OnFootstep()
     {
-        Debug.Log("👟 Animation Event: OnFootstep");
         // Aquí puedes agregar reproducción de sonidos de pasos
     }
 
