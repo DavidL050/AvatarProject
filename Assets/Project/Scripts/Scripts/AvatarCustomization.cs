@@ -87,6 +87,10 @@ namespace Sunbox.Avatars {
     this.BreastSize = data.breastSize;
     this.SkinMaterialIndex = data.skinColorIndex;
     this.HairStyleIndex = FindHairIndexFromId(data.hairId);
+    this.HairStyleIndex = data.hairStyleIndex;
+    this.HairMaterialIndex = data.hairColorIndex;
+    this.FacialHairStyleIndex = data.beardStyleIndex;
+    this.FacialHairMaterialIndex = data.beardColorIndex;
 
 
     ApplyClothingFromData(data);
@@ -94,6 +98,8 @@ namespace Sunbox.Avatars {
     UpdateClothing();
 
     Debug.Log("Avatar reconstruido correctamente con su ropa y forma corporal.");
+
+    UpdateCustomization();
 }
         public void SaveDataAndContinue() 
         { 
@@ -120,6 +126,10 @@ namespace Sunbox.Avatars {
             dataToSave.breastSize = this.BreastSize; 
             dataToSave.skinColorIndex = this.SkinMaterialIndex; 
             dataToSave.hairId = GetHairIdFromIndex(this.HairStyleIndex); 
+            dataToSave.hairStyleIndex = this.HairStyleIndex;
+            dataToSave.hairColorIndex = this.HairMaterialIndex;
+            dataToSave.beardStyleIndex = this.FacialHairStyleIndex;
+            dataToSave.beardColorIndex = this.FacialHairMaterialIndex;
             
        
             SaveClothingToData(dataToSave);

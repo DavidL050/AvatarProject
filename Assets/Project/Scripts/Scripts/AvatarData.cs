@@ -11,6 +11,11 @@ public class AvatarData
     public int skinColorIndex;
     public string hairId;
     
+    public int hairStyleIndex;     
+    public int hairColorIndex;     
+    public int beardStyleIndex;    
+    public int beardColorIndex;
+
     // Blend Shapes
     public float bodyFat;
     public float bodyMuscle;
@@ -43,6 +48,11 @@ public class AvatarData
         selectedGender = Gender.Female;
         skinColorIndex = 0;
         hairId = "DefaultHair";
+
+        hairStyleIndex = 0;
+        hairColorIndex = 0;
+        beardStyleIndex = 0;
+        beardColorIndex = 0;
         
         bodyFat = 0.5f;
         bodyMuscle = 0.3f;
