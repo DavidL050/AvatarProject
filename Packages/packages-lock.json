@@ -425,7 +425,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.compositionlayers": {
-      "version": "2.0.0",
+      "version": "2.1.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -497,7 +497,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.meta-openxr": {
-      "version": "2.2.0",
+      "version": "2.2.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -505,7 +505,7 @@
         "com.unity.xr.core-utils": "2.5.1",
         "com.unity.xr.management": "4.4.0",
         "com.unity.xr.arfoundation": "6.2.0",
-        "com.unity.xr.compositionlayers": "2.0.0"
+        "com.unity.xr.compositionlayers": "2.1.0"
       },
       "url": "https://packages.unity.com"
     },
@@ -515,15 +515,6 @@
       "source": "registry",
       "dependencies": {
         "com.unity.xr.management": "4.0.1"
-      },
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.xr.oculus": {
-      "version": "4.5.2",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.xr.management": "4.4.0"
       },
       "url": "https://packages.unity.com"
     },
