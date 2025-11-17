@@ -37,7 +37,14 @@ public class UnifiedPlayerMovement : MonoBehaviour
     public float accelerationRate = 3.81f;
     [Tooltip("Velocidad de desaceleración del movimiento")]
     [Range(1f, 10f)]
-    public float decelerationRate = 5f;
+    public float decelerationRate = 10f;
+    
+    [Header("Control de Detención")]
+    [Tooltip("Umbral mínimo de input para considerar que hay movimiento")]
+    [Range(0.01f, 0.3f)]
+    public float inputThreshold = 0.102f;
+    [Tooltip("Detener instantáneamente al soltar el joystick (recomendado: activado)")]
+    public bool instantStop = true;
 
     [Header("Referencias VR")]
     public Transform xrOrigin;
@@ -55,6 +62,7 @@ public class UnifiedPlayerMovement : MonoBehaviour
 
     // Input
     private Vector2 moveInput;
+    private Vector2 rawMoveInput; // Input sin procesar para detección precisa
     private bool sprintInput;
     private InputAction jumpAction;
     private InputAction sprintAction;
@@ -67,6 +75,7 @@ public class UnifiedPlayerMovement : MonoBehaviour
     private bool jumpRequestedThisFrame = false;
     private bool isJumping = false;
     private float currentMovementSpeed = 0f;
+    private float currentAnimSpeed = 0f; // Para controlar la animación directamente
     
     // Controladores VR
     private UnityEngine.XR.InputDevice leftController;
@@ -157,12 +166,27 @@ public class UnifiedPlayerMovement : MonoBehaviour
 
     private void OnMovePerformed(InputAction.CallbackContext context)
     {
-        moveInput = context.ReadValue<Vector2>();
+        rawMoveInput = context.ReadValue<Vector2>();
+        moveInput = rawMoveInput;
     }
     
     private void OnMoveCanceled(InputAction.CallbackContext context)
     {
+        rawMoveInput = Vector2.zero;
         moveInput = Vector2.zero;
+        
+        // Detención TOTAL inmediata
+        if (instantStop) {
+            currentMovementSpeed = 0f;
+            currentAnimSpeed = 0f;
+            
+            // Forzar el parámetro Speed a 0 inmediatamente sin suavizado
+            if (animator != null && !string.IsNullOrEmpty(speedParameterName)) {
+                animator.SetFloat(speedParameterName, 0f);
+            }
+            
+            Debug.Log("🛑 Input cancelado - DETENCIÓN TOTAL");
+        }
     }
     
     private void InitializeVRControllers()
@@ -194,22 +218,38 @@ public class UnifiedPlayerMovement : MonoBehaviour
     
     private void GetVRInput()
     {
+        bool hadPreviousInput = rawMoveInput.sqrMagnitude > 0.01f;
+        
         // MOVIMIENTO - Joystick izquierdo
         if (leftController.isValid &&
             leftController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.primary2DAxis, out Vector2 vrJoystick))
         {
-            if (vrJoystick.sqrMagnitude > 0.01f)
+            rawMoveInput = vrJoystick;
+            
+            if (vrJoystick.sqrMagnitude > 0.01f) {
                 moveInput = vrJoystick;
+            } else {
+                moveInput = Vector2.zero;
+                
+                // Si acabamos de soltar el joystick, forzar detención
+                if (hadPreviousInput && instantStop) {
+                    currentMovementSpeed = 0f;
+                    currentAnimSpeed = 0f;
+                    
+                    if (animator != null && !string.IsNullOrEmpty(speedParameterName)) {
+                        animator.SetFloat(speedParameterName, 0f);
+                    }
+                    
+                    Debug.Log("🛑 VR Joystick soltado - DETENCIÓN TOTAL");
+                }
+            }
         }
         
         // SPRINT - Gatillo izquierdo (Left Trigger)
         if (leftController.isValid &&
             leftController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.trigger, out float triggerValue))
         {
-            sprintInput = triggerValue > 0.5f; // Presionado si el gatillo está >50%
-            
-            if (sprintInput)
-                Debug.Log($"🏃 Sprint activo (Trigger: {triggerValue:F2})");
+            sprintInput = triggerValue > 0.5f;
         }
         
         // SALTO - Botón A del controlador derecho (Primary Button)
@@ -271,31 +311,53 @@ public class UnifiedPlayerMovement : MonoBehaviour
         float inputMagnitude = clampedInput.magnitude;
         
         Vector3 moveDirection = Vector3.zero;
-        if (inputMagnitude > 0.1f) {
+        if (inputMagnitude > inputThreshold) {
             moveDirection = (forward * clampedInput.y + right * clampedInput.x).normalized;
         }
         
         float targetSpeed = 0f;
-        if (inputMagnitude > 0.1f) {
+        if (inputMagnitude > inputThreshold) {
             targetSpeed = sprintInput ? sprintSpeed : walkSpeed;
             targetSpeed *= inputMagnitude;
         }
         
-        float smoothRate = (targetSpeed > currentMovementSpeed) ? accelerationRate : decelerationRate;
-        currentMovementSpeed = Mathf.Lerp(currentMovementSpeed, targetSpeed, Time.deltaTime * smoothRate);
+        // DETENCIÓN ULTRA AGRESIVA
+        if (instantStop && inputMagnitude < inputThreshold) {
+            // Forzar velocidad a cero INMEDIATAMENTE sin Lerp
+            currentMovementSpeed = 0f;
+        } else if (inputMagnitude < inputThreshold) {
+            // Desaceleración muy rápida
+            currentMovementSpeed = Mathf.Lerp(currentMovementSpeed, 0f, Time.deltaTime * decelerationRate * 2f);
+            
+            // Umbral de corte para evitar micro-movimientos
+            if (currentMovementSpeed < 0.05f) {
+                currentMovementSpeed = 0f;
+            }
+        } else {
+            // Aceleración/desaceleración normal cuando hay input
+            float smoothRate = (targetSpeed > currentMovementSpeed) ? accelerationRate : decelerationRate;
+            currentMovementSpeed = Mathf.Lerp(currentMovementSpeed, targetSpeed, Time.deltaTime * smoothRate);
+        }
         
-        Vector3 horizontalMovement = moveDirection * currentMovementSpeed;
-        Vector3 finalMovement = (horizontalMovement + velocity) * Time.deltaTime;
-        
-        characterController.Move(finalMovement);
-        
-        if (moveDirection.sqrMagnitude > 0.01f) {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                rotationSpeed * Time.deltaTime
-            );
+        // Solo mover si la velocidad es significativa
+        if (currentMovementSpeed > 0.01f) {
+            Vector3 horizontalMovement = moveDirection * currentMovementSpeed;
+            Vector3 finalMovement = (horizontalMovement + velocity) * Time.deltaTime;
+            characterController.Move(finalMovement);
+            
+            // Rotar solo si se está moviendo
+            if (moveDirection.sqrMagnitude > 0.01f) {
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    targetRotation,
+                    rotationSpeed * Time.deltaTime
+                );
+            }
+        } else {
+            // Si no hay movimiento, solo aplicar gravedad
+            Vector3 finalMovement = velocity * Time.deltaTime;
+            characterController.Move(finalMovement);
         }
     }
 
@@ -303,22 +365,36 @@ public class UnifiedPlayerMovement : MonoBehaviour
     {
         if (animator == null) return;
 
-        float targetAnimSpeed = 0f;
         float inputMagnitude = Vector2.ClampMagnitude(moveInput, 1f).magnitude;
+        float targetAnimSpeed = 0f;
 
-        if (inputMagnitude > 0.1f)
+        if (inputMagnitude > inputThreshold)
         {
             targetAnimSpeed = sprintInput ? runAnimSpeed : walkAnimSpeed;
             targetAnimSpeed *= inputMagnitude;
         }
 
-        if (!string.IsNullOrEmpty(speedParameterName))
-            animator.SetFloat(speedParameterName, targetAnimSpeed, animationDampTime, Time.deltaTime);
+        // CONTROL DIRECTO DEL ANIMATOR - SIN SUAVIZADO cuando se detiene
+        if (instantStop && inputMagnitude < inputThreshold) {
+            // Forzar a 0 INMEDIATAMENTE sin ningún suavizado
+            currentAnimSpeed = 0f;
+            if (!string.IsNullOrEmpty(speedParameterName)) {
+                animator.SetFloat(speedParameterName, 0f); // Sin damp time
+            }
+        } else {
+            // Suavizado normal solo cuando hay movimiento
+            float dampTime = (targetAnimSpeed > currentAnimSpeed) ? animationDampTime : animationDampTime * 0.5f;
+            currentAnimSpeed = Mathf.Lerp(currentAnimSpeed, targetAnimSpeed, Time.deltaTime / Mathf.Max(dampTime, 0.01f));
+            
+            if (!string.IsNullOrEmpty(speedParameterName)) {
+                animator.SetFloat(speedParameterName, currentAnimSpeed);
+            }
+        }
 
         if (!string.IsNullOrEmpty(groundedParameterName))
             animator.SetBool(groundedParameterName, isGrounded);
         
-        Debug.Log($"[AnimDEBUG] Speed: {targetAnimSpeed:F2}, Grounded: {isGrounded}, Jump: {jumpRequestedThisFrame}, Sprint: {sprintInput}");
+        Debug.Log($"[AnimDEBUG] InputMag: {inputMagnitude:F3}, TargetAnim: {targetAnimSpeed:F2}, CurrentAnim: {currentAnimSpeed:F2}, MovementSpeed: {currentMovementSpeed:F2}");
     }
 
     public void OnLand()
