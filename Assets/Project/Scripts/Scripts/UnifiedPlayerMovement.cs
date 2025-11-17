@@ -9,14 +9,18 @@ using System.Collections.Generic;
 public class UnifiedPlayerMovement : MonoBehaviour
 {
     [Header("Velocidades de Movimiento")]
-    [Tooltip("Velocidad de caminata (debe coincidir con threshold de Walk en Blend Tree)")]
-    public float walkSpeed = 1f;
-    
-    [Tooltip("Velocidad de sprint (debe coincidir con threshold de Run en Blend Tree)")]
+    [Tooltip("Velocidad de caminata del personaje")]
+    public float walkSpeed = 1.3f;
+    [Tooltip("Velocidad de sprint del personaje")]
     public float sprintSpeed = 3f;
-    
     [Tooltip("Velocidad de rotación del personaje")]
-    public float rotationSpeed = 720f;
+    public float rotationSpeed = 540f;
+
+    [Header("Valores para el Animator")]
+    [Tooltip("Valor enviado al Animator para la animación de caminar")]
+    public float walkAnimSpeed = 0.5f;
+    [Tooltip("Valor enviado al Animator para la animación de correr")]
+    public float runAnimSpeed = 0.8f;
 
     [Header("Configuración de Salto")]
     public float jumpForce = 6f;
@@ -28,14 +32,12 @@ public class UnifiedPlayerMovement : MonoBehaviour
     [Tooltip("Tiempo de transición entre animaciones (mayor = más suave)")]
     [Range(0.05f, 0.5f)]
     public float animationDampTime = 0.15f;
-    
     [Tooltip("Velocidad de aceleración del movimiento")]
     [Range(1f, 10f)]
-    public float accelerationRate = 4f;
-    
+    public float accelerationRate = 3.81f;
     [Tooltip("Velocidad de desaceleración del movimiento")]
     [Range(1f, 10f)]
-    public float decelerationRate = 6f;
+    public float decelerationRate = 5f;
 
     [Header("Referencias VR")]
     public Transform xrOrigin;
@@ -64,82 +66,64 @@ public class UnifiedPlayerMovement : MonoBehaviour
     private bool wasGroundedLastFrame = true;
     private bool jumpRequestedThisFrame = false;
     private bool isJumping = false;
-    
-    // Suavizado de movimiento (no de animación)
     private float currentMovementSpeed = 0f;
-
-    // VR
+    
+    // Controladores VR
     private UnityEngine.XR.InputDevice leftController;
+    private UnityEngine.XR.InputDevice rightController;
     private bool vrInitialized = false;
 
     void Awake()
     {
         characterController = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
-
-        // Configurar acción de Movimiento
+        
         var moveAction = playerInput.actions["Move"];
-        if (moveAction != null)
-        {
+        if (moveAction != null) {
             moveAction.performed += OnMovePerformed;
             moveAction.canceled += OnMoveCanceled;
         }
-
-        // Configurar acción de Sprint
+        
         sprintAction = playerInput.actions["Sprint"];
-
-        // Configurar acción de Salto
         jumpAction = playerInput.actions["Jump"];
+        
         if (jumpAction != null)
-        {
             jumpAction.performed += OnJumpPerformed;
-        }
     }
 
     void Start()
     {
         AvatarCustomization customization = GetComponent<AvatarCustomization>();
-        if (customization != null && customization.Animator != null)
-        {
+        if (customization != null && customization.Animator != null) {
             animator = customization.Animator;
             Debug.Log($"✓ Animator encontrado: {animator.runtimeAnimatorController?.name}");
-            
-            // Verificar parámetros del Animator
             foreach (var param in animator.parameters)
-            {
                 Debug.Log($"📋 Parámetro Animator: {param.name} (Tipo: {param.type})");
-            }
-        }
-        else
-        {
+        } else {
             Debug.LogWarning("⚠ No se encontró AvatarCustomization o Animator");
         }
-
-        if (Camera.main != null)
-        {
+        
+        if (Camera.main != null) {
             cameraTransform = Camera.main.transform;
-        }
-        else
-        {
+        } else {
             Debug.LogError("✗ No se encontró cámara principal");
         }
-
-        if (xrOrigin == null)
-        {
+        
+        if (xrOrigin == null) {
             GameObject xr = GameObject.Find("XR Origin (VR)");
-            if (xr != null)
-            {
+            if (xr != null) {
                 xrOrigin = xr.transform;
                 Debug.Log("✓ XR Origin encontrado");
             }
         }
-
+        
         InitializeVRControllers();
         Debug.Log("========== UnifiedPlayerMovement Inicializado ==========");
     }
 
     private void OnJumpPerformed(InputAction.CallbackContext context)
     {
+        Debug.Log("!!! JUMP ACTION DETECTED BY INPUT SYSTEM !!!");
         jumpRequestedThisFrame = true;
     }
 
@@ -147,34 +131,27 @@ public class UnifiedPlayerMovement : MonoBehaviour
     {
         if (!vrInitialized)
             InitializeVRControllers();
-
+        
         GetVRInput();
         
-        // Lectura del estado de Sprint
-        if (sprintAction != null)
-        {
-            sprintInput = sprintAction.IsPressed();
+        if (sprintAction != null) {
+            sprintInput = sprintInput || sprintAction.IsPressed();
         }
         
-        // Detección de suelo mejorada
         wasGroundedLastFrame = isGrounded;
-        isGrounded = characterController.isGrounded || 
-                     Physics.Raycast(transform.position, Vector3.down, 
-                                   (characterController.height / 2f) + groundCheckMargin);
-
-        // Detectar aterrizaje
-        if (isGrounded && !wasGroundedLastFrame && isJumping)
-        {
+        isGrounded = characterController.isGrounded ||
+                     Physics.Raycast(transform.position, Vector3.down, (characterController.height / 2f) + groundCheckMargin);
+        
+        if (isGrounded && !wasGroundedLastFrame && isJumping) {
             isJumping = false;
             Debug.Log("🛬 Aterrizaje detectado");
         }
-
+        
         ApplyGravity();
         ProcessJump();
         MoveCharacter();
         UpdateAnimations();
         
-        // Resetear solicitud de salto
         jumpRequestedThisFrame = false;
     }
 
@@ -182,116 +159,137 @@ public class UnifiedPlayerMovement : MonoBehaviour
     {
         moveInput = context.ReadValue<Vector2>();
     }
-
+    
     private void OnMoveCanceled(InputAction.CallbackContext context)
     {
         moveInput = Vector2.zero;
     }
-
+    
     private void InitializeVRControllers()
     {
         var devices = new List<UnityEngine.XR.InputDevice>();
+        
+        // Controlador izquierdo
         InputDevices.GetDevicesWithCharacteristics(
             InputDeviceCharacteristics.Left | InputDeviceCharacteristics.Controller,
             devices
         );
-
-        if (devices.Count > 0)
-        {
+        if (devices.Count > 0) {
             leftController = devices[0];
+            Debug.Log($"✓ Left Controller conectado: {leftController.name}");
+        }
+        
+        // Controlador derecho
+        devices.Clear();
+        InputDevices.GetDevicesWithCharacteristics(
+            InputDeviceCharacteristics.Right | InputDeviceCharacteristics.Controller,
+            devices
+        );
+        if (devices.Count > 0) {
+            rightController = devices[0];
             vrInitialized = true;
-            Debug.Log($"✓ VR Controller conectado: {leftController.name}");
+            Debug.Log($"✓ Right Controller conectado: {rightController.name}");
         }
     }
-
+    
     private void GetVRInput()
     {
+        // MOVIMIENTO - Joystick izquierdo
         if (leftController.isValid &&
             leftController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.primary2DAxis, out Vector2 vrJoystick))
         {
             if (vrJoystick.sqrMagnitude > 0.01f)
                 moveInput = vrJoystick;
         }
+        
+        // SPRINT - Gatillo izquierdo (Left Trigger)
+        if (leftController.isValid &&
+            leftController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.trigger, out float triggerValue))
+        {
+            sprintInput = triggerValue > 0.5f; // Presionado si el gatillo está >50%
+            
+            if (sprintInput)
+                Debug.Log($"🏃 Sprint activo (Trigger: {triggerValue:F2})");
+        }
+        
+        // SALTO - Botón A del controlador derecho (Primary Button)
+        if (rightController.isValid &&
+            rightController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.primaryButton, out bool jumpPressed))
+        {
+            if (jumpPressed && !jumpRequestedThisFrame)
+            {
+                jumpRequestedThisFrame = true;
+                Debug.Log($"🎮 VR Jump pressed! Frame: {Time.frameCount}");
+            }
+        }
     }
-
+    
     private void ApplyGravity()
     {
-        if (isGrounded && velocity.y <= 0)
-        {
+        if (isGrounded && velocity.y <= 0) {
             velocity.y = -2f;
-        }
-        else
-        {
+        } else {
             velocity.y -= gravity * Time.deltaTime;
         }
     }
-
+    
     private void ProcessJump()
     {
-        bool canJump = jumpRequestedThisFrame && 
-                       isGrounded && 
-                       !isJumping && 
+        bool canJump = jumpRequestedThisFrame &&
+                       isGrounded &&
+                       !isJumping &&
                        (Time.time - lastJumpTime) > jumpCooldown &&
                        velocity.y <= 0.1f;
-
+        
         if (canJump)
         {
             velocity.y = jumpForce;
             lastJumpTime = Time.time;
             isJumping = true;
-
-            if (animator != null && !string.IsNullOrEmpty(jumpTriggerName))
-            {
+            
+            if (animator != null && !string.IsNullOrEmpty(jumpTriggerName)) {
                 animator.ResetTrigger(jumpTriggerName);
                 animator.SetTrigger(jumpTriggerName);
             }
-
+            
             Debug.Log($"🦘 Salto ejecutado - Frame: {Time.frameCount}, Tiempo: {Time.time:F2}");
         }
     }
-
+    
     private void MoveCharacter()
     {
         if (cameraTransform == null) return;
-
+        
         Vector3 forward = cameraTransform.forward;
         Vector3 right = cameraTransform.right;
         forward.y = 0;
         right.y = 0;
         forward.Normalize();
         right.Normalize();
-
-        // Clamp del input para evitar velocidades diagonales exageradas
+        
         Vector2 clampedInput = Vector2.ClampMagnitude(moveInput, 1f);
         float inputMagnitude = clampedInput.magnitude;
         
-        // Calcular dirección de movimiento
         Vector3 moveDirection = Vector3.zero;
-        if (inputMagnitude > 0.1f)
-        {
+        if (inputMagnitude > 0.1f) {
             moveDirection = (forward * clampedInput.y + right * clampedInput.x).normalized;
         }
-
-        // Determinar velocidad objetivo según input
+        
         float targetSpeed = 0f;
-        if (inputMagnitude > 0.1f)
-        {
+        if (inputMagnitude > 0.1f) {
             targetSpeed = sprintInput ? sprintSpeed : walkSpeed;
-            targetSpeed *= inputMagnitude; // Soporte para input analógico
+            targetSpeed *= inputMagnitude;
         }
-
-        // Suavizar la velocidad de movimiento con Lerp
+        
         float smoothRate = (targetSpeed > currentMovementSpeed) ? accelerationRate : decelerationRate;
         currentMovementSpeed = Mathf.Lerp(currentMovementSpeed, targetSpeed, Time.deltaTime * smoothRate);
-
-        // Aplicar movimiento con velocidad suavizada
+        
         Vector3 horizontalMovement = moveDirection * currentMovementSpeed;
         Vector3 finalMovement = (horizontalMovement + velocity) * Time.deltaTime;
+        
         characterController.Move(finalMovement);
-
-        // Rotación suave hacia la dirección de movimiento
-        if (moveDirection.sqrMagnitude > 0.01f)
-        {
+        
+        if (moveDirection.sqrMagnitude > 0.01f) {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
@@ -305,69 +303,56 @@ public class UnifiedPlayerMovement : MonoBehaviour
     {
         if (animator == null) return;
 
-        // Calcular velocidad objetivo para el Animator
         float targetAnimSpeed = 0f;
         float inputMagnitude = Vector2.ClampMagnitude(moveInput, 1f).magnitude;
-        
+
         if (inputMagnitude > 0.1f)
         {
-            targetAnimSpeed = sprintInput ? sprintSpeed : walkSpeed;
+            targetAnimSpeed = sprintInput ? runAnimSpeed : walkAnimSpeed;
             targetAnimSpeed *= inputMagnitude;
         }
 
-        // CLAVE: Usar SetFloat con dampTime para transiciones suaves
         if (!string.IsNullOrEmpty(speedParameterName))
-        {
             animator.SetFloat(speedParameterName, targetAnimSpeed, animationDampTime, Time.deltaTime);
-        }
 
-        // Actualizar estado de suelo
         if (!string.IsNullOrEmpty(groundedParameterName))
-        {
             animator.SetBool(groundedParameterName, isGrounded);
-        }
+        
+        Debug.Log($"[AnimDEBUG] Speed: {targetAnimSpeed:F2}, Grounded: {isGrounded}, Jump: {jumpRequestedThisFrame}, Sprint: {sprintInput}");
     }
-    
+
     public void OnLand()
     {
         Debug.Log("📢 Animation Event: OnLand");
         isJumping = false;
-        
-        if (animator != null && !string.IsNullOrEmpty(jumpTriggerName))
-        {
+        if (animator != null && !string.IsNullOrEmpty(jumpTriggerName)) {
             animator.ResetTrigger(jumpTriggerName);
         }
     }
-
-    public void OnFootstep()
-    {
-        // Aquí puedes agregar reproducción de sonidos de pasos
-    }
-
+    
+    public void OnFootstep() { }
+    
     void OnDrawGizmos()
     {
         if (!Application.isPlaying) return;
-
-        // Indicador visual de estado
+        
         if (isJumping)
             Gizmos.color = Color.yellow;
         else if (isGrounded)
             Gizmos.color = Color.green;
         else
             Gizmos.color = Color.red;
-            
+        
         Gizmos.DrawWireSphere(transform.position, 0.3f);
-
-        // Dirección de cámara
-        if (cameraTransform != null)
-        {
+        
+        if (cameraTransform != null) {
             Vector3 forward = cameraTransform.forward;
             forward.y = 0;
             Gizmos.color = Color.blue;
             Gizmos.DrawRay(transform.position, forward.normalized * 2f);
         }
     }
-
+    
     void OnDestroy()
     {
         if (playerInput != null)
@@ -381,8 +366,6 @@ public class UnifiedPlayerMovement : MonoBehaviour
         }
         
         if (jumpAction != null)
-        {
             jumpAction.performed -= OnJumpPerformed;
-        }
     }
 }
