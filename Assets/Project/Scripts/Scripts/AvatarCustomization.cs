@@ -74,33 +74,50 @@ namespace Sunbox.Avatars {
         #endregion
 
         #region Integración con Sistema de Juego
-     public void ApplyData(AvatarData data)
+ public void ApplyData(AvatarData data)
 {
     if (data == null)
     {
         Debug.LogError("Se intentó aplicar datos nulos.");
         return;
     }
+    
+    Debug.Log("========== APLICANDO DATOS DEL AVATAR ==========");
+    
+    // Género y cuerpo
     this.CurrentGender = (AvatarGender)data.selectedGender;
     this.BodyFat = data.bodyFat;
     this.BodyMuscle = data.bodyMuscle;
     this.BreastSize = data.breastSize;
     this.SkinMaterialIndex = data.skinColorIndex;
-    this.HairStyleIndex = FindHairIndexFromId(data.hairId);
+    
+    // CABELLO
     this.HairStyleIndex = data.hairStyleIndex;
     this.HairMaterialIndex = data.hairColorIndex;
+    
+    Debug.Log($"✓ Cabello aplicado: Style={data.hairStyleIndex}, Color={data.hairColorIndex}");
+    
+    // BARBA 
     this.FacialHairStyleIndex = data.beardStyleIndex;
     this.FacialHairMaterialIndex = data.beardColorIndex;
-
-
+    
+    Debug.Log($"✓ Barba aplicada: Style={data.beardStyleIndex}, Color={data.beardColorIndex}");
+    
+    this.BrowMaterialIndex = data.browColorIndex;
+    Debug.Log($"✓ Cejas aplicadas: Color={data.browColorIndex}");
+    
     ApplyClothingFromData(data);
+    
+    
     SetGender(CurrentGender, true);
     UpdateClothing();
-
-    Debug.Log("Avatar reconstruido correctamente con su ropa y forma corporal.");
-
+    
+    Debug.Log("✓ Avatar reconstruido correctamente");
+    Debug.Log("========== FIN APLICACIÓN DE DATOS ==========");
+    
     UpdateCustomization();
 }
+
         public void SaveDataAndContinue() 
         { 
             if (GameManager.Instance == null) 
@@ -125,11 +142,11 @@ namespace Sunbox.Avatars {
             dataToSave.bodyMuscle = this.BodyMuscle; 
             dataToSave.breastSize = this.BreastSize; 
             dataToSave.skinColorIndex = this.SkinMaterialIndex; 
-            dataToSave.hairId = GetHairIdFromIndex(this.HairStyleIndex); 
             dataToSave.hairStyleIndex = this.HairStyleIndex;
             dataToSave.hairColorIndex = this.HairMaterialIndex;
             dataToSave.beardStyleIndex = this.FacialHairStyleIndex;
             dataToSave.beardColorIndex = this.FacialHairMaterialIndex;
+            dataToSave.browColorIndex = this.BrowMaterialIndex;
             
        
             SaveClothingToData(dataToSave);
@@ -146,32 +163,7 @@ namespace Sunbox.Avatars {
             UnityEngine.SceneManagement.SceneManager.LoadScene("Proyecto_General"); 
         }
 
-        private string GetHairIdFromIndex(int index) 
-        { 
-            var hairItems = AvatarReferences.HairItems; 
-            if (hairItems == null || index < 0 || index >= hairItems.Length) 
-            { 
-                return null; 
-            } 
-            return hairItems[index].name; 
-        }
-
-        private int FindHairIndexFromId(string hairId) 
-        { 
-            var hairItems = AvatarReferences.HairItems; 
-            if (hairItems == null || string.IsNullOrEmpty(hairId)) 
-            { 
-                return 0; 
-            } 
-            for (int i = 0; i < hairItems.Length; i++) 
-            { 
-                if (hairItems[i] != null && hairItems[i].name == hairId) 
-                { 
-                    return i; 
-                } 
-            } 
-            return 0; 
-        }
+    
         #endregion
 
         #region Persistencia de Ropa

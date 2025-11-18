@@ -406,17 +406,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64b6b9580c2b4c248b24ddcac6f126a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  avatarParent: {fileID: 2050411846241618747}
+  maleAvatar: {fileID: 1358190713}
+  femaleAvatar: {fileID: 1719640420}
   animationPanel: {fileID: 118621303}
   buttonsContainer: {fileID: 1557858595}
   animationButtonTemplate: {fileID: 1201233302}
   availableAnimations:
   - animationName: Bailar
-    animatorStateName: Dance01
+    animatorStateName: BailarTrigger
   - animationName: Aplaudir
-    animatorStateName: Clap
+    animatorStateName: AplaudirTrigger
   - animationName: Saludar
-    animatorStateName: Wave
+    animatorStateName: SaludarTrigger
 --- !u!114 &118621305
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5567,10 +5568,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 118621303}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 118621304}
+        m_TargetAssemblyTypeName: AvatarAnimationController, Assembly-CSharp
+        m_MethodName: CloseAnimationPanel
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -6666,8 +6667,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 118621304}
         m_TargetAssemblyTypeName: AvatarAnimationController, Assembly-CSharp
-        m_MethodName: PlayAnimation
-        m_Mode: 5
+        m_MethodName: OpenAnimationPanel
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -7330,6 +7331,11 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!1 &1358190713 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2959744893888147320, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
+  m_PrefabInstance: {fileID: 8111807320413216307}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1374905720
 GameObject:
   m_ObjectHideFlags: 0
@@ -8834,6 +8840,11 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &1719640420 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2339096896590231224, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
+  m_PrefabInstance: {fileID: 8111807320413216307}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1769819315
 GameObject:
   m_ObjectHideFlags: 0
@@ -10722,11 +10733,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd6cd4ecf187edd4db817f4661f9b55c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!4 &2050411846241618747 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5368219287395099781, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
-  m_PrefabInstance: {fileID: 8111807320413216307}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8111807320413216307
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10739,6 +10745,18 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 428725605376757952, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: f04666cbbd17e41448909b2f045d6977, type: 2}
+    - target: {fileID: 2907597285586333846, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: f04666cbbd17e41448909b2f045d6977, type: 2}
+    - target: {fileID: 4012244259025170951, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: f04666cbbd17e41448909b2f045d6977, type: 2}
     - target: {fileID: 4356953956956787321, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -10791,7 +10809,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: Avatar
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5189453727109718645, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
+    - {fileID: 6616649914941669508, guid: 2bda686abf66f4266b73c514c558765b, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
