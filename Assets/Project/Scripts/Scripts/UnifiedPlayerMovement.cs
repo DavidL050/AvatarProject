@@ -164,6 +164,20 @@ public class UnifiedPlayerMovement : MonoBehaviour
         jumpRequestedThisFrame = false;
     }
 
+    public void TriggerGrabAnimation()
+    {
+        if (animator != null)
+        {
+            // Usamos el nombre del trigger que creaste en tu Animator
+            animator.SetTrigger("GrabObjectTrigger");
+            Debug.Log("🏃‍♂️ UnifiedPlayerMovement activó el trigger: GrabObjectTrigger");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ Se intentó activar la animación de agarre, pero el Animator es nulo.");
+        }
+    }
+    
     private void OnMovePerformed(InputAction.CallbackContext context)
     {
         rawMoveInput = context.ReadValue<Vector2>();

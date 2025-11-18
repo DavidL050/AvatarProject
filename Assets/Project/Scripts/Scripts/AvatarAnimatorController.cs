@@ -4,7 +4,6 @@ using TMPro;
 
 public class AvatarAnimationController : MonoBehaviour
 {
-    // --- CAMBIO 1: Referencias específicas para cada modelo ---
     [Header("Configuración del Avatar")]
     public GameObject maleAvatar;
     public GameObject femaleAvatar;
@@ -90,36 +89,15 @@ public class AvatarAnimationController : MonoBehaviour
     }
 
     /// <summary>
-    /// Activa una animación en el Animator usando un Trigger.
+    /// Activa las animaciones de los botones (Bailar, Saludar, etc.).
     /// </summary>
     public void PlayAnimation(string triggerName)
     {
-        Debug.Log($"🎬 Activando trigger: {triggerName}");
+        Debug.Log($"🎬 Activando trigger de UI: {triggerName}");
         
-        // --- CAMBIO 2: Lógica de búsqueda inteligente ---
-        Animator currentAnimator = null;
-
-        // Primero, busca en el modelo masculino si está activo
-        if (maleAvatar != null && maleAvatar.activeInHierarchy)
-        {
-            currentAnimator = maleAvatar.GetComponent<Animator>();
-            Debug.Log("✓ Animator encontrado en el modelo MASCULINO activo.");
-        }
-        // Si no, busca en el modelo femenino si está activo
-        else if (femaleAvatar != null && femaleAvatar.activeInHierarchy)
-        {
-            currentAnimator = femaleAvatar.GetComponent<Animator>();
-            Debug.Log("✓ Animator encontrado en el modelo FEMENINO activo.");
-        }
-
-        // Si después de buscar en ambos, no se encontró NADA, mostrar error y detener.
-        if (currentAnimator == null)
-        {
-            Debug.LogError("❌ No se encontró un Animator en NINGÚN modelo de avatar activo. Revisa las asignaciones en el Inspector.");
-            return;
-        }
+        Animator currentAnimator = GetActiveAnimator();
+        if (currentAnimator == null) return;
         
-        // El resto del código funciona igual, pero ahora con el Animator correcto.
         if (!currentAnimator.enabled || currentAnimator.runtimeAnimatorController == null)
         {
             Debug.LogError("❌ El Animator encontrado está deshabilitado o no tiene un Animator Controller.");
@@ -129,5 +107,46 @@ public class AvatarAnimationController : MonoBehaviour
         currentAnimator.SetTrigger(triggerName);
         
         Debug.Log($"✅ Trigger '{triggerName}' activado en el Animator correcto.");
+    }
+
+    // --- ¡ESTA ES LA NUEVA FUNCIÓN AÑADIDA! ---
+    /// <summary>
+    /// Activa la animación de cuerpo completo para agarrar un objeto.
+    /// Esta función será llamada por el VRHandController.
+    /// </summary>
+    public void TriggerGrabAnimation()
+    {
+        Animator currentAnimator = GetActiveAnimator();
+        if (currentAnimator == null) 
+        {
+            Debug.LogError("❌ No se encontró Animator para la animación de agarre.");
+            return;
+        }
+
+        // Activamos el trigger que creaste en el Animator ("GrabObjectTrigger")
+        Debug.Log($"🏃‍♂️ Activando trigger de animación de agarre: GrabObjectTrigger");
+        currentAnimator.SetTrigger("GrabObjectTrigger");
+    }
+
+    /// <summary>
+    /// Función de ayuda para encontrar el Animator del avatar activo (masculino o femenino).
+    /// </summary>
+    /// <returns>El componente Animator activo, o null si no se encuentra.</returns>
+    private Animator GetActiveAnimator()
+    {
+        // Busca en el modelo masculino si está activo
+        if (maleAvatar != null && maleAvatar.activeInHierarchy)
+        {
+            return maleAvatar.GetComponent<Animator>();
+        }
+        // Si no, busca en el modelo femenino si está activo
+        else if (femaleAvatar != null && femaleAvatar.activeInHierarchy)
+        {
+            return femaleAvatar.GetComponent<Animator>();
+        }
+
+        // Si no se encontró ninguno, muestra un error.
+        Debug.LogError("❌ No se encontró un modelo de avatar activo (ni masculino ni femenino).");
+        return null;
     }
 }

@@ -9,21 +9,25 @@ public class VRHandController : MonoBehaviour
     public bool isRightHand = true;
     
     [Header("Detección de Objetos")]
-    [Tooltip("Radio de búsqueda de objetos agarrables")]
+    [Tooltip("Radio de búsqueda de objetos cercanos (para feedback visual)")]
     public float grabRadius = 2.0f;
     
     [Tooltip("Layers que pueden ser agarrados")]
-    public LayerMask grabbableLayer = -1; // -1 = Everything
+    public LayerMask grabbableLayer = -1;
     
     [Tooltip("Máximo número de objetos a detectar")]
     public int maxDetectionCount = 10;
+
+    [Header("Animación del Avatar")]
+    [Tooltip("El script de movimiento del avatar principal")]
+    public UnifiedPlayerMovement playerMovement; // <-- Referencia actualizada
     
     [Header("Punto de Agarre")]
     [Tooltip("Transform donde se posiciona el objeto agarrado")]
     public Transform gripPoint;
     
     [Header("Feedback Visual")]
-    [Tooltip("Renderer de la mano para feedback visual")]
+    [Tooltip("Renderer de la mano para feedback visual (opcional)")]
     public Renderer handRenderer;
     
     [Tooltip("Color cuando hay objeto cercano")]
@@ -56,71 +60,55 @@ public class VRHandController : MonoBehaviour
     [Tooltip("Mostrar mensajes de debug en consola")]
     public bool showDebug = true;
     
-    // Estado del controlador VR
+    // --- Componentes Internos ---
     private InputDevice controller;
     private bool controllerInitialized = false;
-    
-    // Estado de agarre
     private VRGrabbable currentGrabbedObject;
     private VRGrabbable nearestObject;
     private bool gripButtonPressed = false;
     private bool wasGripPressed = false;
-    
-    // Tracking de velocidad
     private Vector3 previousPosition;
     private Quaternion previousRotation;
     private Vector3 handVelocity;
     private Vector3 handAngularVelocity;
-    
-    // Buffer para detección
     private Collider[] detectionBuffer;
-    
-    // Simulación
     private bool isVRActive = false;
-    private int debugFrameCounter = 0;
-
+    
     void Awake()
     {
         detectionBuffer = new Collider[maxDetectionCount];
-        
-        if (gripPoint == null)
-        {
-            CreateGripPoint();
-        }
-        
-        if (handRenderer != null)
-        {
-            originalHandColor = handRenderer.material.color;
-        }
+        if (gripPoint == null) CreateGripPoint();
+        if (handRenderer != null) originalHandColor = handRenderer.material.color;
     }
 
     private void CreateGripPoint()
     {
         Transform existingGrip = transform.Find("GripPoint");
-        
         if (existingGrip != null)
         {
             gripPoint = existingGrip;
-            if (showDebug)
-                Debug.Log($"✓ GripPoint encontrado en {(isRightHand ? "Right" : "Left")} Controller");
         }
         else
         {
             GameObject grip = new GameObject("GripPoint");
             grip.transform.SetParent(transform);
-            
-            // Posición adelante del controller
             grip.transform.localPosition = new Vector3(0, 0, 0.5f);
             grip.transform.localRotation = Quaternion.identity;
             gripPoint = grip.transform;
-            
-            if (showDebug)
-                Debug.Log($"🔧 GripPoint creado para {(isRightHand ? "Right" : "Left")} Controller");
         }
     }
 
     void Start()
     {
+        // --- Lógica de búsqueda actualizada ---
+        if (playerMovement == null)
+        {
+            // Busca el script en los objetos padre, ya que la mano suele ser hija del avatar
+            playerMovement = GetComponentInParent<UnifiedPlayerMovement>();
+            if(playerMovement != null && showDebug)
+                Debug.Log($"✓ UnifiedPlayerMovement encontrado automáticamente.");
+        }
+        
         InitializeController();
         previousPosition = gripPoint.position;
         previousRotation = gripPoint.rotation;
@@ -128,33 +116,18 @@ public class VRHandController : MonoBehaviour
         if (showDebug)
         {
             Debug.Log($"🤚 VRHandController inicializado: {(isRightHand ? "Derecha" : "Izquierda")}");
-            Debug.Log($"   - Grab Radius: {grabRadius}");
-            Debug.Log($"   - Grabbable Layer: {LayerMaskToString(grabbableLayer)}");
-        }
-        
-        if (useSimulationMode && !isVRActive)
-        {
-            if (showDebug)
+            if (useSimulationMode && !isVRActive)
                 Debug.Log($"⌨️ Modo simulación activado - Tecla: {(isRightHand ? rightGrabKey : leftGrabKey)}");
         }
     }
 
     void Update()
     {
-        debugFrameCounter++;
-        
-        if (!controllerInitialized && useSimulationMode)
+        if ((!controllerInitialized || !controller.isValid) && !useSimulationMode)
             InitializeController();
         
-        // Usar VR o teclado según disponibilidad
-        if (isVRActive)
-        {
-            UpdateInput();
-        }
-        else if (useSimulationMode)
-        {
-            UpdateSimulationInput();
-        }
+        if (isVRActive) UpdateInput();
+        else if (useSimulationMode) UpdateSimulationInput();
         
         DetectNearbyObjects();
         HandleGrabRelease();
@@ -164,9 +137,7 @@ public class VRHandController : MonoBehaviour
 
     private void InitializeController()
     {
-        InputDeviceCharacteristics characteristics = InputDeviceCharacteristics.Controller;
-        characteristics |= isRightHand ? InputDeviceCharacteristics.Right : InputDeviceCharacteristics.Left;
-        
+        InputDeviceCharacteristics characteristics = InputDeviceCharacteristics.Controller | (isRightHand ? InputDeviceCharacteristics.Right : InputDeviceCharacteristics.Left);
         var devices = new List<InputDevice>();
         InputDevices.GetDevicesWithCharacteristics(characteristics, devices);
         
@@ -175,8 +146,7 @@ public class VRHandController : MonoBehaviour
             controller = devices[0];
             controllerInitialized = true;
             isVRActive = true;
-            if (showDebug)
-                Debug.Log($"✓ Controlador {(isRightHand ? "derecho" : "izquierdo")} conectado: {controller.name}");
+            if (showDebug) Debug.Log($"✓ Controlador {(isRightHand ? "derecho" : "izquierdo")} conectado: {controller.name}");
         }
         else
         {
@@ -187,7 +157,6 @@ public class VRHandController : MonoBehaviour
     private void UpdateInput()
     {
         if (!controller.isValid) return;
-        
         wasGripPressed = gripButtonPressed;
         controller.TryGetFeatureValue(CommonUsages.gripButton, out gripButtonPressed);
     }
@@ -195,74 +164,36 @@ public class VRHandController : MonoBehaviour
     private void UpdateSimulationInput()
     {
         wasGripPressed = gripButtonPressed;
-        
-        KeyCode grabKey = isRightHand ? rightGrabKey : leftGrabKey;
-        gripButtonPressed = Input.GetKey(grabKey);
-        
-        if (gripButtonPressed && !wasGripPressed && showDebug)
-        {
-            Debug.Log($"⌨️ Tecla {grabKey} presionada - {(isRightHand ? "Derecha" : "Izquierda")}");
-        }
+        gripButtonPressed = Input.GetKey(isRightHand ? rightGrabKey : leftGrabKey);
     }
 
     private void DetectNearbyObjects()
     {
-        if (currentGrabbedObject != null) return;
-        
-        int hitCount = Physics.OverlapSphereNonAlloc(
-            gripPoint.position,
-            grabRadius,
-            detectionBuffer,
-            grabbableLayer
-        );
-        
-        // Debug periódico cada 2 segundos
-        if (showDebug && debugFrameCounter % 120 == 0)
+        if (currentGrabbedObject != null)
         {
-            Debug.Log($"🔍 {(isRightHand ? "Derecha" : "Izquierda")} - Radio: {grabRadius}m - Detectados: {hitCount} objetos");
-            Debug.Log($"   Posición GripPoint: {gripPoint.position}");
+            nearestObject = null;
+            return;
         }
+
+        int hitCount = Physics.OverlapSphereNonAlloc(gripPoint.position, grabRadius, detectionBuffer, grabbableLayer);
         
         VRGrabbable closest = null;
         float closestDistance = float.MaxValue;
         
         for (int i = 0; i < hitCount; i++)
         {
-            VRGrabbable grabbable = detectionBuffer[i].GetComponent<VRGrabbable>();
+            VRGrabbable grabbable = detectionBuffer[i].GetComponentInParent<VRGrabbable>();
             
-            if (grabbable != null)
+            if (grabbable != null && grabbable.isGrabbable && !grabbable.IsGrabbed)
             {
-                if (showDebug && debugFrameCounter % 120 == 0)
+                float distance = Vector3.Distance(gripPoint.position, grabbable.transform.position);
+                if (distance < closestDistance)
                 {
-                    Debug.Log($"   - Objeto encontrado: {detectionBuffer[i].gameObject.name} | isGrabbable: {grabbable.isGrabbable} | IsGrabbed: {grabbable.IsGrabbed}");
-                }
-                
-                if (grabbable.isGrabbable && !grabbable.IsGrabbed)
-                {
-                    float distance = Vector3.Distance(gripPoint.position, grabbable.transform.position);
-                    
-                    if (distance < closestDistance)
-                    {
-                        closest = grabbable;
-                        closestDistance = distance;
-                    }
-                }
-            }
-            else
-            {
-                // El objeto no tiene VRGrabbable
-                if (showDebug && debugFrameCounter % 120 == 0)
-                {
-                    Debug.Log($"   - Objeto sin VRGrabbable: {detectionBuffer[i].gameObject.name}");
+                    closest = grabbable;
+                    closestDistance = distance;
                 }
             }
         }
-        
-        if (closest != null && nearestObject != closest && showDebug)
-        {
-            Debug.Log($"✨ {(isRightHand ? "Derecha" : "Izquierda")} detectó objeto agarrable: {closest.gameObject.name} a {closestDistance:F2}m");
-        }
-        
         nearestObject = closest;
     }
 
@@ -275,14 +206,15 @@ public class VRHandController : MonoBehaviour
         {
             if (currentGrabbedObject == null && nearestObject != null)
             {
-                GrabObject(nearestObject);
-            }
-            else if (showDebug)
-            {
-                if (currentGrabbedObject != null)
-                    Debug.Log($"⚠️ Ya hay un objeto agarrado: {currentGrabbedObject.gameObject.name}");
-                else if (nearestObject == null)
-                    Debug.Log($"⚠️ No hay objetos cercanos para agarrar");
+                float distanceToObject = Vector3.Distance(gripPoint.position, nearestObject.transform.position);
+                if (distanceToObject <= nearestObject.grabDistance)
+                {
+                    GrabObject(nearestObject);
+                }
+                else if (showDebug)
+                {
+                    Debug.LogWarning($"⚠️ Objeto '{nearestObject.name}' demasiado lejos para agarrar. Distancia: {distanceToObject:F2}m / Requerido: {nearestObject.grabDistance}m");
+                }
             }
         }
         
@@ -294,13 +226,20 @@ public class VRHandController : MonoBehaviour
 
     private void GrabObject(VRGrabbable grabbable)
     {
+        // --- Lógica de llamada a la animación actualizada ---
+        if (playerMovement != null)
+        {
+            playerMovement.TriggerGrabAnimation();
+        }
+        else if(showDebug)
+        {
+            Debug.LogWarning("⚠️ No se encontró el script Player Movement para activar la animación de agarre.");
+        }
+        
         currentGrabbedObject = grabbable;
         currentGrabbedObject.OnGrab(gripPoint);
         
-        if (isVRActive)
-        {
-            SendHapticImpulse(grabHapticIntensity, grabHapticDuration);
-        }
+        if (isVRActive) SendHapticImpulse(grabHapticIntensity, grabHapticDuration);
         
         if (showDebug)
             Debug.Log($"✋ Objeto agarrado por {(isRightHand ? "DERECHA" : "IZQUIERDA")}: {grabbable.gameObject.name}");
@@ -309,29 +248,19 @@ public class VRHandController : MonoBehaviour
     private void ReleaseObject()
     {
         if (currentGrabbedObject == null) return;
-        
         currentGrabbedObject.OnRelease(handVelocity, handAngularVelocity);
-        
-        if (isVRActive)
-        {
-            SendHapticImpulse(grabHapticIntensity * 0.5f, grabHapticDuration * 0.5f);
-        }
-        
-        if (showDebug)
-            Debug.Log($"🎯 Objeto lanzado por {(isRightHand ? "DERECHA" : "IZQUIERDA")}: {currentGrabbedObject.gameObject.name}");
-        
+        if (isVRActive) SendHapticImpulse(grabHapticIntensity * 0.5f, grabHapticDuration * 0.5f);
+        if (showDebug) Debug.Log($"🎯 Objeto lanzado por {(isRightHand ? "DERECHA" : "IZQUIERDA")}: {currentGrabbedObject.gameObject.name}");
         currentGrabbedObject = null;
     }
 
     private void UpdateHandVelocity()
     {
         handVelocity = (gripPoint.position - previousPosition) / Time.deltaTime;
-        
         Quaternion deltaRotation = gripPoint.rotation * Quaternion.Inverse(previousRotation);
         deltaRotation.ToAngleAxis(out float angle, out Vector3 axis);
         angle *= Mathf.Deg2Rad;
         handAngularVelocity = axis * (angle / Time.deltaTime);
-        
         previousPosition = gripPoint.position;
         previousRotation = gripPoint.rotation;
     }
@@ -339,41 +268,28 @@ public class VRHandController : MonoBehaviour
     private void UpdateVisualFeedback()
     {
         if (handRenderer == null) return;
-        
         Color targetColor = originalHandColor;
-        
-        if (currentGrabbedObject != null)
-            targetColor = grabbingColor;
-        else if (nearestObject != null)
-            targetColor = nearObjectColor;
-        
-        handRenderer.material.color = Color.Lerp(
-            handRenderer.material.color,
-            targetColor,
-            Time.deltaTime * 10f
-        );
+        if (currentGrabbedObject != null) targetColor = grabbingColor;
+        else if (nearestObject != null) targetColor = nearObjectColor;
+        handRenderer.material.color = Color.Lerp(handRenderer.material.color, targetColor, Time.deltaTime * 10f);
     }
 
     private void SendHapticImpulse(float amplitude, float duration)
     {
-        if (controller.isValid)
-        {
+        if (controllerInitialized && controller.isValid) 
             controller.SendHapticImpulse(0, amplitude, duration);
-        }
     }
 
     private string LayerMaskToString(LayerMask mask)
     {
         if (mask.value == -1) return "Everything";
-        
-        List<string> layers = new List<string>();
+        var layers = new List<string>();
         for (int i = 0; i < 32; i++)
         {
             if ((mask.value & (1 << i)) != 0)
             {
                 string layerName = LayerMask.LayerToName(i);
-                if (!string.IsNullOrEmpty(layerName))
-                    layers.Add(layerName);
+                if (!string.IsNullOrEmpty(layerName)) layers.Add(layerName);
             }
         }
         return layers.Count > 0 ? string.Join(", ", layers) : "Nothing";
@@ -387,28 +303,20 @@ public class VRHandController : MonoBehaviour
     {
         if (gripPoint == null) return;
         
-        // Radio de detección con colores
-        if (currentGrabbedObject != null)
-            Gizmos.color = Color.green;
-        else if (nearestObject != null)
-            Gizmos.color = Color.yellow;
-        else
-            Gizmos.color = new Color(1, 0, 0, 0.3f); // Rojo semi-transparente
-        
+        if (currentGrabbedObject != null) Gizmos.color = Color.green;
+        else if (nearestObject != null) Gizmos.color = Color.yellow;
+        else Gizmos.color = new Color(1, 0, 0, 0.3f);
         Gizmos.DrawWireSphere(gripPoint.position, grabRadius);
         
-        // Punto central del grip
         Gizmos.color = Color.white;
         Gizmos.DrawSphere(gripPoint.position, 0.05f);
         
-        // Línea hacia objeto más cercano
         if (Application.isPlaying && nearestObject != null)
         {
             Gizmos.color = Color.cyan;
             Gizmos.DrawLine(gripPoint.position, nearestObject.transform.position);
         }
         
-        // Velocidad si hay objeto agarrado
         if (Application.isPlaying && currentGrabbedObject != null)
         {
             Gizmos.color = Color.magenta;
